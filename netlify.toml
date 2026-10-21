@@ -1,0 +1,6 @@
+[build]
+command = "npx next build"
+publish = ".open-next"
+
+[[plugins]]
+package = "@netlify/plugin-nextjs"

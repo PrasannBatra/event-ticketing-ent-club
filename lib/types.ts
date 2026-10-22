@@ -6,7 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  studentId: string;
+  studentId: string; // may be empty for Google sign-in users
   role: Role;
   createdAt: string;
 }

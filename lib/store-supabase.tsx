@@ -32,7 +32,7 @@ async function api<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
-const userFrom = (r: any): User => ({ id: r.id, name: r.name, email: r.email, studentId: r.student_id, role: r.role, createdAt: r.created_at });
+const userFrom = (r: any): User => ({ id: r.id, name: r.name, email: r.email, studentId: r.student_id ?? "", role: r.role, createdAt: r.created_at });
 const eventFrom = (r: any): EventT => ({
   id: r.id, name: r.name, description: r.description, date: r.date, time: String(r.time).slice(0, 5), venue: r.venue,
   posterUrl: r.poster_url ?? undefined, posterTheme: String(r.name).length % 5, price: Number(r.ticket_price),
@@ -149,20 +149,27 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     return {
       ready, demo: false, user, events, tickets, orders,
 
-      signUp: async ({ name, email, studentId, password }) => {
+      signUp: async ({ name, email, password }) => {
         if (!isAshokaEmail(email)) return { error: `Use your @${STUDENT_EMAIL_DOMAIN} email address.` };
         const { data, error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(), password,
-          options: { data: { name: name.trim(), student_id: studentId.trim() }, emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+          options: { data: { name: name.trim() }, emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
         });
         if (error) return { error: /already|registered/i.test(error.message) ? "An account with this email already exists. Sign in instead." : error.message.includes("ashoka") ? `Use your @${STUDENT_EMAIL_DOMAIN} email address.` : error.message };
-        return { confirm: !data.session };
+        return { confirm: data.session ? undefined : email };
       },
       signIn: async (email, password) => {
         if (!isAshokaEmail(email)) return { error: `Use your @${STUDENT_EMAIL_DOMAIN} email address.` };
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
         if (!error) return {};
         return { error: /confirm/i.test(error.message) ? "Confirm your email first. Check your inbox for the link we sent." : "Wrong email or password." };
+      },
+      signInWithGoogle: async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+        });
+        return error ? { error: "Couldn't start Google sign-in. Try again." } : {};
       },
       signOut: async () => { await supabase.auth.signOut(); },
       resendConfirmation: async (email) => {

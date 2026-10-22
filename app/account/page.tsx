@@ -33,7 +33,7 @@ export default function AccountPage() {
     <div className="mx-auto max-w-xl">
       <h1 className="text-4xl font-semibold">Your account</h1>
       <dl className="mt-6 divide-y divide-line overflow-hidden rounded-3xl bg-card">
-        {[["Name", user.name], ["Ashoka email", user.email], ["Student ID", user.studentId], ["Role", user.role === "organiser" ? "Organiser" : "Student"]].map(([k, v]) => (
+        {[["Name", user.name], ["Ashoka email", user.email], ["Student ID", user.studentId || "—"], ["Role", user.role === "organiser" ? "Organiser" : "Student"]].map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4 px-5 py-4"><dt className="text-muted">{k}</dt><dd className="text-right font-medium">{v}</dd></div>
         ))}
       </dl>

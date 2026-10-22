@@ -81,12 +81,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       tickets: db.tickets.filter((t) => t.userId === user?.id),
       orders: db.orders.filter((o) => o.userId === user?.id),
 
-      signUp: async ({ name, email, studentId }) => {
+      signUp: async ({ name, email }) => {
         const d = cur();
         const e = email.trim().toLowerCase();
         if (!isAshokaEmail(e)) return { error: "Use your @ashoka.edu.in email address." };
         if (d.users.some((u) => u.email === e)) return { error: "An account with this email already exists. Sign in instead." };
-        const u: User = { id: "stu-" + rid(6), name: name.trim(), email: e, studentId: studentId.trim(), role: "student", createdAt: new Date().toISOString() };
+        const u: User = { id: "stu-" + rid(6), name: name.trim(), email: e, studentId: "", role: "student", createdAt: new Date().toISOString() };
         commit({ ...d, users: [...d.users, u], currentUserId: u.id });
         return {};
       },
@@ -98,6 +98,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         commit({ ...d, currentUserId: u.id });
         return {};
       },
+      signInWithGoogle: async () => ({ error: "Google sign-in isn't available in demo mode. Connect Supabase to use it." }),
       signOut: async () => commit({ ...cur(), currentUserId: null }),
       resendConfirmation: async () => ({}),
       requestPasswordReset: async (email) => (isAshokaEmail(email) ? {} : { error: "Use your @ashoka.edu.in email address." }),

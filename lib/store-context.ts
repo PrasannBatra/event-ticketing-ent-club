@@ -14,8 +14,9 @@ export interface Store {
   orders: Order[]; // the signed-in student's payment submissions
 
   // auth (Ashoka email only)
-  signUp: (i: { name: string; email: string; studentId: string; password: string }) => Promise<{ error?: string; confirm?: boolean }>;
+  signUp: (i: { name: string; email: string; password: string }) => Promise<{ error?: string; confirm?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signInWithGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resendConfirmation: (email: string) => Promise<{ error?: string }>;
   requestPasswordReset: (email: string) => Promise<{ error?: string }>;

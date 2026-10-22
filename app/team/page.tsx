@@ -49,7 +49,7 @@ function Users() {
           <li key={u.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="min-w-0">
               <p className="flex items-center gap-2 text-lg font-medium"><span className="truncate">{u.name}</span><span className={`chip ${roleChip[u.role]}`}>{u.role === "organiser" ? "Organiser" : "Student"}</span></p>
-              <p className="truncate text-sm text-muted">{u.email} · {u.studentId}</p>
+              <p className="truncate text-sm text-muted">{u.email}{u.studentId ? ` · ${u.studentId}` : ""}</p>
             </div>
             {u.role === "student" && <button className="btn btn-primary !py-2" disabled={busy === u.id} onClick={() => change(u, "organiser")}>Make organiser</button>}
             {u.role === "organiser" && <button className="btn btn-outline !py-2" disabled={busy === u.id} onClick={() => change(u, "student")}>Make student</button>}

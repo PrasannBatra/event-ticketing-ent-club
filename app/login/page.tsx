@@ -10,15 +10,15 @@ import { isAshokaEmail, STUDENT_EMAIL_DOMAIN } from "@/lib/config";
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const { signUp, signIn, resendConfirmation, signInDemo, resetDemo, demo } = useStore();
+  const { signUp, signIn, signInWithGoogle, resendConfirmation, signInDemo, resetDemo, demo } = useStore();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmSent, setConfirmSent] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [confirmSent, setConfirmSent] = useState<string | null>(null);
   const [resendMsg, setResendMsg] = useState<string | null>(null);
 
   const next = params.get("next");
@@ -29,13 +29,13 @@ function LoginForm() {
     setError(null);
     if (!isAshokaEmail(email)) return setError(`Use your @${STUDENT_EMAIL_DOMAIN} email address.`);
     if (password.length < 8) return setError("Use a password with at least 8 characters.");
-    if (mode === "signup" && (!name.trim() || !studentId.trim())) return setError("Add your name and student ID to create an account.");
+    if (mode === "signup" && !name.trim()) return setError("Add your name to create an account.");
     setBusy(true);
     if (mode === "signup") {
-      const r = await signUp({ name, email, studentId, password });
+      const r = await signUp({ name, email, password });
       setBusy(false);
       if (r.error) return setError(r.error);
-      if (r.confirm) return setConfirmSent(true);
+      if (r.confirm) return setConfirmSent(r.confirm);
       return go("student");
     }
     const r = await signIn(email, password);
@@ -45,16 +45,27 @@ function LoginForm() {
     router.refresh();
   };
 
+  const google = async () => {
+    setError(null);
+    setGoogleBusy(true);
+    const r = await signInWithGoogle();
+    if (r.error) {
+      setGoogleBusy(false);
+      setError(r.error);
+    }
+    // On success the browser redirects to Google — nothing else to do here.
+  };
+
   if (confirmSent) {
     return (
       <div className="mx-auto max-w-md py-16 text-center" role="status">
         <MailCheck className="mx-auto h-14 w-14 text-good-fg" aria-hidden />
         <h1 className="mt-6 text-3xl font-semibold">Check your email</h1>
-        <p className="mt-3 text-muted">We sent a confirmation link to <b className="text-ink">{email}</b>. Click it, then come back and sign in.</p>
+        <p className="mt-3 text-muted">We sent a confirmation link to <b className="text-ink">{confirmSent}</b>. Click it, then come back and sign in.</p>
         <p className="mt-3 text-sm text-muted">Nothing arrived? Check spam, or</p>
-        <button className="mt-1 text-sm font-semibold text-ultra underline-offset-4 hover:underline" onClick={async () => { const r = await resendConfirmation(email); setResendMsg(r.error ?? "Sent again. Check your inbox."); }}>send it again</button>
+        <button className="mt-1 text-sm font-semibold text-ultra underline-offset-4 hover:underline" onClick={async () => { const r = await resendConfirmation(confirmSent); setResendMsg(r.error ?? "Sent again. Check your inbox."); }}>send it again</button>
         {resendMsg && <p role="status" className="mt-2 text-sm text-muted">{resendMsg}</p>}
-        <div><button className="btn btn-dark mt-6" onClick={() => { setConfirmSent(false); setMode("signin"); }}>Go to sign in</button></div>
+        <div><button className="btn btn-dark mt-6" onClick={() => { setConfirmSent(null); setMode("signin"); }}>Go to sign in</button></div>
       </div>
     );
   }
@@ -68,23 +79,34 @@ function LoginForm() {
           {mode === "signin" ? "Sign in to get your ticket" : "Create your account"}
         </h1>
         <p className="mt-5 max-w-sm text-muted">
-          Only @{STUDENT_EMAIL_DOMAIN} accounts can sign up. Organisers sign in here too, with the account another organiser set up. Students: pay, upload your payment screenshot, and your QR ticket appears once it's approved.
+          Only @{STUDENT_EMAIL_DOMAIN} accounts can sign up. Organisers sign in here too. Students: pay, upload your payment screenshot, and your QR ticket appears once it's approved.
         </p>
       </div>
 
       <div>
+        <button type="button" onClick={google} disabled={googleBusy || busy} className="btn btn-outline w-full btn-lg gap-3">
+          {googleBusy ? (
+            "Connecting…"
+          ) : (
+            <>
+              <GoogleIcon className="h-5 w-5" aria-hidden />
+              Continue with Google
+            </>
+          )}
+        </button>
+
+        <div className="my-6 flex items-center gap-4" aria-hidden>
+          <span className="h-px flex-1 bg-line" />
+          <span className="text-sm text-muted">or</span>
+          <span className="h-px flex-1 bg-line" />
+        </div>
+
         <form onSubmit={submit} className="space-y-4" noValidate>
           {mode === "signup" && (
-            <>
-              <div>
-                <label htmlFor="name" className="field-label">Full name</label>
-                <input id="name" className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-              </div>
-              <div>
-                <label htmlFor="sid" className="field-label">Student ID</label>
-                <input id="sid" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="AU2026-1042" />
-              </div>
-            </>
+            <div>
+              <label htmlFor="name" className="field-label">Full name</label>
+              <input id="name" className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+            </div>
           )}
           <div>
             <label htmlFor="email" className="field-label">Ashoka email</label>
@@ -96,7 +118,7 @@ function LoginForm() {
             {mode === "signin" && <Link href="/forgot-password" className="mt-2 inline-block text-sm font-semibold text-ultra underline-offset-4 hover:underline">Forgot your password?</Link>}
           </div>
           {error && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm font-medium text-bad-fg">{error}</p>}
-          <button type="submit" disabled={busy} className="btn btn-primary w-full btn-lg">
+          <button type="submit" disabled={busy || googleBusy} className="btn btn-primary w-full btn-lg">
             {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
           </button>
         </form>
@@ -123,6 +145,17 @@ function LoginForm() {
         )}
       </div>
     </div>
+  );
+}
+
+function GoogleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.27-4.74 3.27-8.09Z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.76c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" fill="#34A853"/>
+      <path d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38Z" fill="#EA4335"/>
+    </svg>
   );
 }
 

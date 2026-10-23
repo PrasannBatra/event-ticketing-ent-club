@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import type { Role } from "@/lib/types";
 
-/** Client-side gate for UX only. Real access control is enforced by Supabase row level security (plan 5.3). */
+/** Client-side gate for UX only. Real access control is enforced by Supabase row level security. */
 export default function RequireRole({ role, children }: { role: Role; children: React.ReactNode }) {
   const { ready, user } = useStore();
   const router = useRouter();
@@ -21,13 +21,15 @@ export default function RequireRole({ role, children }: { role: Role; children: 
   if (user.role !== role) {
     return (
       <div className="mx-auto max-w-md py-20 text-center">
-        <h1 className="text-3xl font-semibold">{role === "organiser" ? "This page is for organisers" : "This page is for students"}</h1>
+        <h1 className="text-3xl font-semibold">{role === "organiser" ? "This page is for organisers" : role === "admin" ? "This page is for admins" : "This page is for students"}</h1>
         <p className="mt-3 text-muted">
           {role === "organiser"
             ? "Organiser accounts are set up by an existing organiser. Ask them to add you under Team."
+            : role === "admin"
+            ? "Admin accounts are restricted. Contact the site administrator."
             : "You're signed in as an organiser. Sign in with a student account to buy tickets."}
         </p>
-        <Link href={user.role !== "student" ? "/organiser" : "/"} className="btn btn-dark mt-6">
+        <Link href={user.role === "admin" ? "/admin" : user.role === "organiser" ? "/organiser" : "/"} className="btn btn-dark mt-6">
           Go to your home
         </Link>
       </div>

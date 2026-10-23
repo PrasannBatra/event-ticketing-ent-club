@@ -15,6 +15,13 @@ const organiserNav = [
   { href: "/organiser/events/new", label: "New event", icon: PlusCircle },
   { href: "/team", label: "Team", icon: Users },
 ];
+const adminNav = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/payments", label: "Payments", icon: Ticket },
+  { href: "/admin/events", label: "Events", icon: CalendarDays },
+  { href: "/admin/tickets", label: "Tickets", icon: ScanLine },
+  { href: "/admin/users", label: "Users", icon: Users },
+];
 
 function Logo() {
   return (
@@ -31,10 +38,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const nav = user?.role === "organiser" ? organiserNav : studentNav;
+  const nav = user?.role === "admin" ? adminNav : user?.role === "organiser" ? organiserNav : studentNav;
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/" || pathname.startsWith("/events");
     if (href === "/organiser") return pathname === "/organiser" || (pathname.startsWith("/organiser/events/") && !pathname.endsWith("/new"));
+    if (href === "/admin") return pathname === "/admin";
     return pathname.startsWith(href);
   };
 
@@ -71,7 +79,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <>
               <div className="hidden text-right leading-tight sm:block">
                 <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted">{user.role === "organiser" ? "Organiser" : "Student"}</p>
+                <p className="text-xs text-muted">{user.role === "admin" ? "Admin" : user.role === "organiser" ? "Organiser" : "Student"}</p>
               </div>
               <Link href="/account" aria-label="Your account" className="grid h-11 w-11 place-items-center rounded-full border border-edge/70 bg-strong text-base font-medium text-white">
                 {user.name.charAt(0).toUpperCase()}

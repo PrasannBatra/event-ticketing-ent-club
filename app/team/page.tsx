@@ -7,7 +7,8 @@ import RequireRole from "@/components/RequireRole";
 import type { User } from "@/lib/types";
 
 const roleChip: Record<User["role"], string> = {
-  organiser: "bg-accent-soft text-ink",
+  admin: "bg-accent-soft text-ink",
+  organiser: "bg-line text-muted",
   student: "bg-line text-muted",
 };
 

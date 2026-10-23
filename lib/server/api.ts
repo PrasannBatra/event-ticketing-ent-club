@@ -25,7 +25,7 @@ export function publicClient(): SupabaseClient {
 export interface Ctx {
   sb: SupabaseClient; // acts AS the signed-in user, so the database access rules apply to every query
   userId: string;
-  role: "student" | "organiser";
+  role: "student" | "organiser" | "admin";
 }
 
 /** Reads the Bearer token the browser sends and builds a client that runs as that user. */
@@ -44,8 +44,12 @@ export async function authed(req: NextRequest): Promise<Ctx> {
 
 export function requireRole(ctx: Ctx, role: Ctx["role"]) {
   if (ctx.role !== role) {
-    throw new ApiError(403, "forbidden", role === "organiser" ? "Only organisers can do this." : "Only students can do this.");
+    throw new ApiError(403, "forbidden", role === "organiser" ? "Only organisers can do this." : role === "admin" ? "Only admins can do this." : "Only students can do this.");
   }
+}
+
+export function requireAdmin(ctx: Ctx) {
+  if (ctx.role !== "admin") throw new ApiError(403, "forbidden", "Only admins can do this.");
 }
 
 // Messages raised by the database functions in supabase/schema.sql
@@ -63,6 +67,7 @@ const DB_ERRORS: Record<string, [number, string]> = {
   not_organiser: [403, "Only organisers can do this."],
   bad_role: [400, "That role isn't allowed."],
   user_not_found: [404, "We couldn't find that person (you can't change your own role)."],
+  not_admin: [403, "Only admins can do this."],
 };
 
 export function dbError(message: string): ApiError {

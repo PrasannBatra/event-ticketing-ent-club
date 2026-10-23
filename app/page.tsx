@@ -13,7 +13,7 @@ export default function HomePage() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [cheapFirst, setCheapFirst] = useState(false);
-  useEffect(() => { if (ready && user && user.role !== "student") router.replace("/organiser"); }, [ready, user, router]);
+  useEffect(() => { if (ready && user && user.role !== "student") router.replace(user.role === "admin" ? "/admin" : "/organiser"); }, [ready, user, router]);
   if (!ready || (user && user.role !== "student")) return <PageSkeleton />;
 
   // Home lists events currently open for purchase (plan 2.2). Sold-out ones stay visible as "Sales closed".

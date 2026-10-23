@@ -89,7 +89,12 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       }
       const me = userFrom((await api("/api/me")).user);
       setUser(me);
-      if (me.role !== "student") {
+      if (me.role === "admin") {
+        // Admins see public events (same as students); admin data loads on demand per page
+        const ev = await api("/api/events");
+        setEvents(ev.events.map(eventFrom));
+        setTickets([]); setOrders([]);
+      } else if (me.role !== "student") {
         const r = await api("/api/organiser/events");
         const evs: EventT[] = r.events.map(eventFrom);
         const map: Record<string, EventStats> = {};

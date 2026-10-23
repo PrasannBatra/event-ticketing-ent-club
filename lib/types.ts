@@ -1,6 +1,6 @@
 // Mirrors the data model in section 5.2 of the plan (camelCase for the front-end).
 
-export type Role = "student" | "organiser";
+export type Role = "student" | "organiser" | "admin";
 
 export interface User {
   id: string;

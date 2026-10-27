@@ -31,16 +31,45 @@ export interface EventT {
 
 // A student uploads a payment screenshot; the event's organiser approves or rejects it.
 export type PaymentStatus = "awaiting_review" | "approved" | "rejected";
+export type MatchStatus = "unmatched" | "matched" | "verified" | "rejected";
 
 export interface Order {
   id: string;
   userId: string;
   eventId: string;
-  amount: number; // stored on the order so later price changes don't affect it
-  screenshotPath: string; // file in the private payment-screenshots bucket
+  amount: number;
+  screenshotPath: string;
   paymentStatus: PaymentStatus;
   rejectReason?: string;
   emailStatus?: "none" | "pending" | "sending" | "sent" | "failed";
+  createdAt: string;
+  txnId?: string;
+  upiQrId?: string;
+  matchStatus?: MatchStatus;
+}
+
+export interface UpiQr {
+  id: string;
+  eventId: string;
+  label: string;
+  storagePath: string;
+  publicUrl?: string;
+  createdAt: string;
+}
+
+export interface MatchSummary {
+  matched: number;
+  unmatched: number;
+  verified: number;
+  rejected: number;
+  txnRecords: number;
+}
+
+export interface TxnRecord {
+  id: string;
+  txnId: string;
+  amount?: number;
+  rawLine?: string;
   createdAt: string;
 }
 
@@ -97,7 +126,10 @@ export interface Attendee {
 export interface PendingPayment {
   order: Order;
   user: User;
-  duplicates: number; // how many OTHER payments used the exact same screenshot (a sign of a fake or re-used one)
+  duplicates: number;
+  txnId?: string;
+  upiQrId?: string;
+  matchStatus?: MatchStatus;
 }
 
 export interface EmailRun {

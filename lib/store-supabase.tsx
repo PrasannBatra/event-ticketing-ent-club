@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { isAshokaEmail, STUDENT_EMAIL_DOMAIN } from "./config";
 import { supabase } from "./supabase";
 import { Ctx, MAX_SCREENSHOT_BYTES, downloadBlob, salesStateOf, type Store } from "./store-context";
-import type { Attendee, CheckInResult, EventStats, EventT, Order, PendingPayment, Ticket, User } from "./types";
+import type { Attendee, CheckInResult, EventStats, EventT, MatchSummary, Order, PendingPayment, Ticket, TxnRecord, UpiQr, User } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 class ApiFail extends Error {}
@@ -46,6 +46,7 @@ const ticketFrom = (r: any): Ticket => ({
 const orderFrom = (r: any): Order => ({
   id: r.id, userId: r.user_id, eventId: r.event_id, amount: Number(r.amount), screenshotPath: r.screenshot_path,
   paymentStatus: r.payment_status, rejectReason: r.reject_reason ?? undefined, createdAt: r.created_at,
+  txnId: r.txn_id ?? undefined, upiQrId: r.upi_qr_id ?? undefined, matchStatus: r.match_status ?? undefined,
 });
 const statsFrom = (r: any, cap?: number): EventStats => ({
   sold: r.sold, revenue: Number(r.revenue), checkedIn: r.checked_in, pending: r.pending, capacity: cap,
@@ -141,9 +142,10 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
           ...m,
           [eventId]: r.pending.map((p: any): PendingPayment => ({
             // screenshotPath holds a short-lived signed link in this mode
-            order: { id: p.order_id, userId: p.user_id, eventId, amount: Number(p.amount), screenshotPath: p.screenshot_url ?? "", paymentStatus: "awaiting_review", createdAt: p.submitted_at },
+            order: { id: p.order_id, userId: p.user_id, eventId, amount: Number(p.amount), screenshotPath: p.screenshot_url ?? "", paymentStatus: "awaiting_review", createdAt: p.submitted_at, txnId: p.txn_id ?? undefined, upiQrId: p.upi_qr_id ?? undefined, matchStatus: p.match_status ?? undefined },
             user: { id: p.user_id, name: p.name, email: p.email, studentId: p.student_id, role: "student", createdAt: "" },
             duplicates: p.duplicates ?? 0,
+            txnId: p.txn_id ?? undefined, upiQrId: p.upi_qr_id ?? undefined, matchStatus: p.match_status ?? undefined,
           })),
         }));
         if (r.email) setEm((m) => ({ ...m, [eventId]: { pending: (r.email.pending ?? 0) + (r.email.sending ?? 0), failed: r.email.failed ?? 0 } }));
@@ -198,7 +200,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       salesState: salesStateOf,
       myTickets: () => tickets,
 
-      submitPayment: async (eventId, file) => {
+      submitPayment: async (eventId, file, txnId, upiQrId) => {
         if (!user) return { ok: false, reason: "Please sign in first." };
         if (!file.type.startsWith("image/")) return { ok: false, reason: "Upload a screenshot image (JPG or PNG)." };
         if (file.size > 20 * 1024 * 1024) return { ok: false, reason: "That image is too large. Choose a smaller screenshot." };
@@ -207,6 +209,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         const form = new FormData();
         form.set("eventId", eventId);
         form.set("screenshot", small);
+        if (txnId) form.set("txnId", txnId);
+        if (upiQrId) form.set("upiQrId", upiQrId);
         try {
           await api("/api/orders", { method: "POST", body: form });
         } catch (e) {
@@ -214,6 +218,13 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         }
         await loadAll(true);
         return { ok: true };
+      },
+
+      eventUpiQrs: async (eventId) => {
+        try {
+          const r = await api<{ qrs: any[] }>(`/api/events/${eventId}/qrs`);
+          return r.qrs.map((q: any): UpiQr => ({ id: q.id, eventId, label: q.label ?? "", storagePath: q.storage_path, publicUrl: q.url ?? undefined, createdAt: q.created_at }));
+        } catch { return []; }
       },
 
       createEvent: async (input, poster) => {
@@ -307,6 +318,63 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         } catch {
           return "Can't reach the server. Check your connection and try again.";
         }
+      },
+
+      // ── UPI QR management ──
+      getUpiQrs: async (eventId) => {
+        try {
+          const r = await api<{ qrs: any[] }>(`/api/organiser/events/${eventId}/qrs`);
+          return r.qrs.map((q: any): UpiQr => ({ id: q.id, eventId, label: q.label ?? "", storagePath: q.storage_path, publicUrl: q.url ?? undefined, createdAt: q.created_at }));
+        } catch { return []; }
+      },
+      addUpiQr: async (eventId, file, label) => {
+        const form = new FormData();
+        form.set("label", label);
+        form.set("qr", file);
+        try {
+          const r = await api<{ id: string }>(`/api/organiser/events/${eventId}/qrs`, { method: "POST", body: form });
+          return r.id ? null : "We couldn't upload the QR code. Try again.";
+        } catch (e) { return (e as Error).message; }
+      },
+      deleteUpiQr: async (qrId, storagePath) => {
+        try {
+          await api(`/api/organiser/events/qrs/${qrId}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storagePath }) });
+          return null;
+        } catch (e) { return (e as Error).message; }
+      },
+
+      // ── CSV transaction matching ──
+      matchSummary: async (eventId) => {
+        try {
+          const r = await api<MatchSummary>(`/api/organiser/events/${eventId}/match-summary`);
+          return r;
+        } catch { return { matched: 0, unmatched: 0, verified: 0, rejected: 0, txnRecords: 0 }; }
+      },
+      uploadTxnCsv: async (eventId, file) => {
+        const form = new FormData();
+        form.set("csv", file);
+        try {
+          const r = await api<{ imported: number }>(`/api/organiser/events/${eventId}/txn-csv`, { method: "POST", body: form });
+          return { imported: r.imported };
+        } catch (e) { return { imported: 0, error: (e as Error).message }; }
+      },
+      runMatch: async (eventId) => {
+        try {
+          const r = await api<{ matched: number; unmatched: number }>(`/api/organiser/events/${eventId}/match`, { method: "POST" });
+          return { matched: r.matched, unmatched: r.unmatched };
+        } catch (e) { return { matched: 0, unmatched: 0, error: (e as Error).message }; }
+      },
+      txnRecords: async (eventId) => {
+        try {
+          const r = await api<{ records: any[] }>(`/api/organiser/events/${eventId}/txn-records`);
+          return r.records.map((t: any): TxnRecord => ({ id: t.id, txnId: t.txn_id, amount: t.amount !== null ? Number(t.amount) : undefined, rawLine: t.raw_line ?? undefined, createdAt: t.created_at }));
+        } catch { return []; }
+      },
+      clearTxnRecords: async (eventId) => {
+        try {
+          const r = await api<{ deleted: number }>(`/api/organiser/events/${eventId}/txn-records`, { method: "DELETE" });
+          return r.deleted;
+        } catch (e) { return null; }
       },
     };
   }, [ready, user, events, tickets, orders, stats, att, pend, em, loadAll]);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatDateTime, formatINR } from "@/lib/format";
 
@@ -144,6 +144,10 @@ export default function PaymentsPanel({ eventId }: { eventId: string }) {
                   <p className="text-lg font-medium">{p.user.name}</p>
                   <p className="truncate text-sm text-muted">{p.user.email} · {p.user.studentId}</p>
                   <p className="mt-1 text-sm">Expected <b>{formatINR(p.order.amount)}</b> · sent {formatDateTime(p.order.createdAt)}</p>
+                  {p.txnId && <p className="mt-1 text-sm text-muted">Txn ID: <span className="font-mono text-xs">{p.txnId}</span></p>}
+                  {p.matchStatus === "matched" && (
+                    <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-good-soft px-3 py-1 text-xs font-semibold text-good-fg"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden />Matched in CSV</p>
+                  )}
                   {p.duplicates > 0 && <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-bad-soft px-3 py-1 text-xs font-semibold text-bad-fg"><AlertTriangle className="h-3.5 w-3.5" aria-hidden />Same screenshot as {p.duplicates} other payment{p.duplicates === 1 ? "" : "s"}</p>}
                   <div className="mt-3 flex gap-2">
                     <button className="btn btn-primary !py-2" disabled={busy} onClick={() => execute({ ids: [p.order.id], approve: true, label: "" })}>Approve</button>

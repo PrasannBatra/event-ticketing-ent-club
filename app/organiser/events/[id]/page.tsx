@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Download, ScanLine, Search } from "lucide-react";
 import PaymentsPanel from "@/components/PaymentsPanel";
+import UpiQrManager from "@/components/UpiQrManager";
+import CsvMatchPanel from "@/components/CsvMatchPanel";
 import { useStore } from "@/lib/store";
 import RequireRole from "@/components/RequireRole";
 import { formatClock, formatDate, formatDateTime, formatINR, formatTime } from "@/lib/format";
@@ -92,6 +94,8 @@ function EventDashboard() {
 
       {notice && <p role="status" className="mt-6 rounded-xl bg-good-soft px-4 py-3 text-sm font-medium text-good-fg">{notice}</p>}
 
+      <UpiQrManager eventId={event.id} />
+      <CsvMatchPanel eventId={event.id} />
       <PaymentsPanel eventId={event.id} />
 
       <section className="mt-10" aria-labelledby="attendees">

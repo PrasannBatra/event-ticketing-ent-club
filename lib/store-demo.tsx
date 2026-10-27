@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MAX_TICKETS_PER_EVENT, isAshokaEmail } from "./config";
 import { buildSeed, DEMO_ORGANISER_ID, DEMO_STUDENT_ID, type DB } from "./seed";
 import { Ctx, MAX_SCREENSHOT_BYTES, ORDER_ERRORS, downloadBlob, salesStateOf, type Store } from "./store-context";
-import type { Attendee, CheckInResult, EventStats, EventT, Order, PendingPayment, Ticket, User } from "./types";
+import type { Attendee, CheckInResult, EventStats, EventT, MatchSummary, Order, PendingPayment, Ticket, TxnRecord, UpiQr, User } from "./types";
 
 const KEY = "gatepass-demo-v4";
 const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -115,7 +115,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
       salesState: (e) => salesStateOf(withFlag(e)),
       myTickets: () => cur().tickets.filter((t) => t.userId === user?.id),
 
-      submitPayment: async (eventId, file) => {
+      submitPayment: async (eventId, file, txnId, upiQrId) => {
         const d = cur();
         const me = d.users.find((u) => u.id === d.currentUserId);
         const ev = d.events.find((e) => e.id === eventId);
@@ -133,10 +133,13 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         const order: Order = {
           id: "ord_" + rid(8), userId: me.id, eventId, amount: ev.price,
           screenshotPath: img.length < 400_000 ? img : "demo", paymentStatus: "awaiting_review", createdAt: new Date().toISOString(),
+          txnId: txnId || undefined, upiQrId: upiQrId || undefined, matchStatus: "unmatched",
         };
         commit({ ...cur(), orders: [...cur().orders, order] });
         return { ok: true };
       },
+
+      eventUpiQrs: async () => [],
 
       createEvent: async (input) => {
         const d = cur();
@@ -153,6 +156,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           .map((o) => ({
             order: o, user: d.users.find((u) => u.id === o.userId) as User,
             duplicates: o.screenshotPath === "demo" ? 0 : d.orders.filter((x) => x.id !== o.id && x.screenshotPath === o.screenshotPath).length,
+            txnId: o.txnId, upiQrId: o.upiQrId, matchStatus: o.matchStatus,
           })).filter((p) => p.user);
       },
       reviewPayments: async (orderIds, approve, reason) => {
@@ -218,6 +222,18 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         commit({ ...d, tickets: d.tickets.map((x) => (x.id === t.id ? updated : x)) });
         return { kind: "valid", ticket: updated, name };
       },
+
+      // ── UPI QR management (demo stubs) ──
+      getUpiQrs: async () => [],
+      addUpiQr: async () => "QR upload isn't available in demo mode.",
+      deleteUpiQr: async () => null,
+
+      // ── CSV transaction matching (demo stubs) ──
+      matchSummary: async () => ({ matched: 0, unmatched: 0, verified: 0, rejected: 0, txnRecords: 0 }),
+      uploadTxnCsv: async () => ({ imported: 0, error: "CSV upload isn't available in demo mode." }),
+      runMatch: async () => ({ matched: 0, unmatched: 0 }),
+      txnRecords: async () => [],
+      clearTxnRecords: async () => 0,
     };
     return store;
   }, [db, commit]);

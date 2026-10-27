@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ImagePlus, Save, Trash2, Send, RefreshCw, Download } from "lucide-react";
 import RequireAdmin from "@/components/RequireAdmin";
 import Poster from "@/components/Poster";
+import AdminUpiQrManager from "@/components/AdminUpiQrManager";
+import AdminCsvMatchPanel from "@/components/AdminCsvMatchPanel";
 import { adminClient, type AdminEvent } from "@/lib/admin";
 import { formatDate, formatINR, formatTime, formatDateTime, toLocalInput } from "@/lib/format";
 
@@ -16,7 +18,7 @@ function EventEditor({ id }: { id: string }) {
   const router = useRouter();
   const [data, setData] = useState<{ event: AdminEvent; stats: any; attendees: any[]; pending: any[]; email: any } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"details" | "attendees" | "emails">("details");
+  const [tab, setTab] = useState<"details" | "payments" | "attendees" | "emails">("details");
 
   // edit form
   const [f, setF] = useState<Record<string, string>>({});
@@ -25,6 +27,7 @@ function EventEditor({ id }: { id: string }) {
   const [archiving, setArchiving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [sendingEmails, setSendingEmails] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const load = async () => {
     try {
@@ -113,7 +116,7 @@ function EventEditor({ id }: { id: string }) {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-full bg-card p-1">
-        {(["details", "attendees", "emails"] as const).map((t) => (
+        {(["details", "payments", "attendees", "emails"] as const).map((t) => (
           <button key={t} className={`rounded-full px-5 py-2 text-sm font-medium capitalize ${tab === t ? "bg-accent text-white" : "text-muted hover:text-ink"}`} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
@@ -151,6 +154,38 @@ function EventEditor({ id }: { id: string }) {
             <button className="btn btn-primary" disabled={saving} onClick={save}><Save className="h-4 w-4" /> {saving ? "Saving…" : "Save changes"}</button>
             <button className="btn btn-outline" disabled={archiving} onClick={archive}><Trash2 className="h-4 w-4" /> Archive event</button>
           </div>
+        </div>
+      )}
+
+      {tab === "payments" && (
+        <div className="space-y-8">
+          <AdminUpiQrManager eventId={id} />
+          <AdminCsvMatchPanel eventId={id} />
+          {data.pending.length === 0 ? (
+            <p className="rounded-3xl bg-card p-8 text-center text-muted">No payments waiting for review.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-3xl bg-card">
+              <table className="w-full min-w-[700px] text-left text-sm">
+                <thead className="border-b border-line text-muted"><tr><th className="p-4">Buyer</th><th className="p-4">Amount</th><th className="p-4">Txn ID</th><th className="p-4">Match</th><th className="p-4">Actions</th></tr></thead>
+                <tbody className="divide-y divide-line">
+                  {data.pending.map((p: any) => (
+                    <tr key={p.order_id}>
+                      <td className="p-4"><p className="font-medium">{p.name}</p><p className="text-xs text-muted">{p.email}</p></td>
+                      <td className="p-4">{formatINR(Number(p.amount))}</td>
+                      <td className="p-4 font-mono text-xs">{p.txn_id ?? "—"}</td>
+                      <td className="p-4">{p.match_status === "matched" ? <span className="chip bg-good-soft text-good-fg">Matched</span> : <span className="chip bg-line text-muted">Unmatched</span>}</td>
+                      <td className="p-4">
+                        <div className="flex gap-2">
+                          <button className="btn btn-primary !py-1.5 text-sm" disabled={busy} onClick={async () => { setBusy(true); await adminClient.reviewPayments([p.order_id], true); setBusy(false); load(); }}>Approve</button>
+                          <button className="btn btn-outline !py-1.5 text-sm" disabled={busy} onClick={async () => { const reason = prompt("Reason for rejection?"); setBusy(true); await adminClient.reviewPayments([p.order_id], false, reason ?? undefined); setBusy(false); load(); }}>Reject</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

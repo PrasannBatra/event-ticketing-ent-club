@@ -73,6 +73,9 @@ export interface AdminOrder {
   ticket_id: string | null;
   ticket_status: string | null;
   checked_in_at: string | null;
+  txn_id: string | null;
+  upi_qr_id: string | null;
+  match_status: string;
 }
 
 export interface AdminTicket {
@@ -141,4 +144,15 @@ export const adminClient = {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, eventId }),
     }),
+  // UPI QR management (admin)
+  getUpiQrs: (eventId: string) => adminApi<{ qrs: any[] }>(`/api/admin/events/${eventId}/qrs`),
+  addUpiQr: (eventId: string, form: FormData) => adminApi<{ id: string }>(`/api/admin/events/${eventId}/qrs`, { method: "POST", body: form }),
+  deleteUpiQr: (qrId: string, storagePath: string) =>
+    adminApi<{ ok: boolean }>(`/api/admin/events/qrs/${qrId}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storagePath }) }),
+  // CSV transaction matching (admin)
+  matchSummary: (eventId: string) => adminApi<{ matched: number; unmatched: number; verified: number; rejected: number; txnRecords: number }>(`/api/admin/events/${eventId}/match-summary`),
+  uploadTxnCsv: (eventId: string, form: FormData) => adminApi<{ imported: number }>(`/api/admin/events/${eventId}/txn-csv`, { method: "POST", body: form }),
+  runMatch: (eventId: string) => adminApi<{ matched: number; unmatched: number }>(`/api/admin/events/${eventId}/match`, { method: "POST" }),
+  txnRecords: (eventId: string) => adminApi<{ records: any[] }>(`/api/admin/events/${eventId}/txn-records`),
+  clearTxnRecords: (eventId: string) => adminApi<{ deleted: number }>(`/api/admin/events/${eventId}/txn-records`, { method: "DELETE" }),
 };

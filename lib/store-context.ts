@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type {
-  Attendee, CheckInResult, EmailRun, EventStats, EventT, NewEventInput, Order, PendingPayment, Role, SalesState, Ticket, User,
+  Attendee, CheckInResult, EmailRun, EventStats, EventT, MatchSummary, NewEventInput, Order, PendingPayment, Role, SalesState, Ticket, TxnRecord, UpiQr, User,
 } from "./types";
 
 export interface Store {
@@ -31,8 +31,11 @@ export interface Store {
   salesState: (e: EventT) => SalesState;
   myTickets: () => Ticket[];
 
-  // student: pay by uploading a screenshot
-  submitPayment: (eventId: string, file: File) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  // student: pay by uploading a screenshot + optional txn ID + selected QR
+  submitPayment: (eventId: string, file: File, txnId?: string, upiQrId?: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+
+  // student: fetch UPI QR codes for an event (to display at checkout)
+  eventUpiQrs: (eventId: string) => Promise<UpiQr[]>;
 
   // organiser
   createEvent: (input: NewEventInput, poster?: File | null) => Promise<string>;
@@ -46,6 +49,18 @@ export interface Store {
   resendTicketEmail: (orderId: string) => Promise<string>; // returns a message to show the organiser
   screenshotUrl: (path: string) => Promise<string | null>;
   checkIn: (token: string, eventId: string) => Promise<CheckInResult>;
+
+  // UPI QR management (organiser/admin)
+  getUpiQrs: (eventId: string) => Promise<UpiQr[]>;
+  addUpiQr: (eventId: string, file: File, label: string) => Promise<string | null>;
+  deleteUpiQr: (qrId: string, storagePath: string) => Promise<string | null>;
+
+  // CSV transaction matching (organiser/admin)
+  matchSummary: (eventId: string) => Promise<MatchSummary>;
+  uploadTxnCsv: (eventId: string, file: File) => Promise<{ imported: number; error?: string }>;
+  runMatch: (eventId: string) => Promise<{ matched: number; unmatched: number; error?: string }>;
+  txnRecords: (eventId: string) => Promise<TxnRecord[]>;
+  clearTxnRecords: (eventId: string) => Promise<number | null>;
 
   // organiser team
   listUsers: (search: string) => Promise<User[]>;

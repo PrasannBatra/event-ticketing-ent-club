@@ -52,7 +52,7 @@ export interface Store {
 
   // UPI QR management (organiser/admin)
   getUpiQrs: (eventId: string) => Promise<UpiQr[]>;
-  addUpiQr: (eventId: string, file: File, label: string) => Promise<string | null>;
+  addUpiQr: (eventId: string, file: File, label: string, upiId?: string) => Promise<string | null>;
   deleteUpiQr: (qrId: string, storagePath: string) => Promise<string | null>;
 
   // CSV transaction matching (organiser/admin)

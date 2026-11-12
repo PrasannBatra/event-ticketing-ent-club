@@ -223,7 +223,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       eventUpiQrs: async (eventId) => {
         try {
           const r = await api<{ qrs: any[] }>(`/api/events/${eventId}/qrs`);
-          return r.qrs.map((q: any): UpiQr => ({ id: q.id, eventId, label: q.label ?? "", storagePath: q.storage_path, publicUrl: q.url ?? undefined, createdAt: q.created_at }));
+          return r.qrs.map((q: any): UpiQr => ({ id: q.id, eventId, label: q.label ?? "", upiId: q.upi_id ?? undefined, storagePath: q.storage_path, publicUrl: q.url ?? undefined, createdAt: q.created_at }));
         } catch { return []; }
       },
 
@@ -324,12 +324,13 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       getUpiQrs: async (eventId) => {
         try {
           const r = await api<{ qrs: any[] }>(`/api/organiser/events/${eventId}/qrs`);
-          return r.qrs.map((q: any): UpiQr => ({ id: q.id, eventId, label: q.label ?? "", storagePath: q.storage_path, publicUrl: q.url ?? undefined, createdAt: q.created_at }));
+          return r.qrs.map((q: any): UpiQr => ({ id: q.id, eventId, label: q.label ?? "", upiId: q.upi_id ?? undefined, storagePath: q.storage_path, publicUrl: q.url ?? undefined, createdAt: q.created_at }));
         } catch { return []; }
       },
-      addUpiQr: async (eventId, file, label) => {
+      addUpiQr: async (eventId, file, label, upiId) => {
         const form = new FormData();
         form.set("label", label);
+        if (upiId) form.set("upiId", upiId);
         form.set("qr", file);
         try {
           const r = await api<{ id: string }>(`/api/organiser/events/${eventId}/qrs`, { method: "POST", body: form });

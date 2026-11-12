@@ -121,7 +121,10 @@ function Checkout() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={qr.publicUrl} alt={qr.label || "UPI QR code"} className="aspect-square w-full object-contain bg-white" />
                     )}
-                    <p className="px-3 py-2 text-sm font-medium">{qr.label || "UPI QR"}</p>
+                    <div className="px-3 py-2">
+                      <p className="text-sm font-medium">{qr.label || "UPI QR"}</p>
+                      {qr.upiId && <p className="mt-0.5 truncate font-mono text-xs text-muted">{qr.upiId}</p>}
+                    </div>
                   </button>
                 ))}
               </div>

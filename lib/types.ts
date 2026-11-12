@@ -52,6 +52,7 @@ export interface UpiQr {
   id: string;
   eventId: string;
   label: string;
+  upiId?: string;
   storagePath: string;
   publicUrl?: string;
   createdAt: string;

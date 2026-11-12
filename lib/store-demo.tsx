@@ -225,7 +225,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
       // ── UPI QR management (demo stubs) ──
       getUpiQrs: async () => [],
-      addUpiQr: async () => "QR upload isn't available in demo mode.",
+      addUpiQr: async (_eventId, _file, _label, _upiId) => "QR upload isn't available in demo mode.",
       deleteUpiQr: async () => null,
 
       // ── CSV transaction matching (demo stubs) ──

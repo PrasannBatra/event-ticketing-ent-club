@@ -5,7 +5,9 @@
   "/admin/events/page": "app/admin/events/page.js",
   "/admin/events/[id]/page": "app/admin/events/[id]/page.js",
   "/admin/tickets/page": "app/admin/tickets/page.js",
+  "/admin/events/new/page": "app/admin/events/new/page.js",
   "/api/admin/events/route": "app/api/admin/events/route.js",
   "/api/admin/events/[id]/route": "app/api/admin/events/[id]/route.js",
-  "/api/admin/tickets/route": "app/api/admin/tickets/route.js"
+  "/api/admin/tickets/route": "app/api/admin/tickets/route.js",
+  "/api/admin/orders/route": "app/api/admin/orders/route.js"
 }

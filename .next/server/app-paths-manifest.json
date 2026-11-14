@@ -4,6 +4,7 @@
   "/tickets/page": "app/tickets/page.js",
   "/admin/payments/page": "app/admin/payments/page.js",
   "/admin/events/page": "app/admin/events/page.js",
+  "/admin/events/[id]/page": "app/admin/events/[id]/page.js",
   "/api/events/route": "app/api/events/route.js",
   "/api/me/route": "app/api/me/route.js",
   "/api/admin/orders/route": "app/api/admin/orders/route.js",

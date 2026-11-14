@@ -3,7 +3,5 @@
   "/admin/page": "app/admin/page.js",
   "/admin/events/page": "app/admin/events/page.js",
   "/admin/events/new/page": "app/admin/events/new/page.js",
-  "/api/me/route": "app/api/me/route.js",
-  "/api/events/route": "app/api/events/route.js",
-  "/api/admin/stats/route": "app/api/admin/stats/route.js"
+  "/api/admin/events/route": "app/api/admin/events/route.js"
 }

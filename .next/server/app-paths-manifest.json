@@ -1,9 +1,7 @@
 {
-  "/login/page": "app/login/page.js",
-  "/admin/payments/page": "app/admin/payments/page.js",
-  "/admin/events/page": "app/admin/events/page.js",
-  "/admin/events/[id]/page": "app/admin/events/[id]/page.js",
-  "/admin/events/new/page": "app/admin/events/new/page.js",
+  "/page": "app/page.js",
+  "/admin/page": "app/admin/page.js",
   "/api/me/route": "app/api/me/route.js",
-  "/api/events/route": "app/api/events/route.js"
+  "/api/events/route": "app/api/events/route.js",
+  "/api/admin/stats/route": "app/api/admin/stats/route.js"
 }
